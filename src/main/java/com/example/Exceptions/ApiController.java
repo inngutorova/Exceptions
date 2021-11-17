@@ -14,10 +14,25 @@ public class ApiController {
 
      private HashMap<String,User> users = new HashMap<>();
 
+
+
     // curl -X GET http://localhost:8080/users
     @GetMapping("users")
     public HashMap<String,User> getUsers() {
         return users;
+    }
+
+
+    @GetMapping("users/{age}")
+    public List<User> getUsersAge(@PathVariable("age") String age) {
+            List<User> cut = new ArrayList<>();
+            for (String key : users.keySet()) {
+                if (users.get(key).getAge() <= Integer.parseInt(age) + 5 && users.get(key).getAge() >= Integer.parseInt(age) - 5) {
+                    cut.add(users.get(key));
+                }
+            }
+
+            return cut;
     }
 
     // curl -X GET http://localhost:8080/users/jack
@@ -36,9 +51,10 @@ public class ApiController {
         return result;
     }
 
-    // curl -X POST http://localhost:8080/users -H 'Content-Type:application/json' -d '{"username" : "Inna", "password" : "pass", "age" : "17"}'
+    // curl -X POST http://localhost:8080/users -H 'Repeat-password: pass' -H 'Content-Type:application/json' -d '{"username" : "Inna", "password" : "pass", "age" : "17"}'
     @PostMapping("users")
-    public void addUser(@RequestBody User user) {
+    public void addUser(@RequestBody User user, @RequestHeader("Repeat-password") String repeatPassword) {
+
         try {
             for (int i = 0; i < user.getUsername().length(); i++) {
                 char c = user.getUsername().charAt(i);
@@ -49,7 +65,9 @@ public class ApiController {
                 if(users.containsKey(user.getUsername())) {
                     throw new Exception409();
                 }
-
+                if(!repeatPassword.equals(user.getPassword())) {
+                    throw new Exception400();
+                }
             users.put(user.getUsername(),user);
         } catch (Exception400 e) {
             System.out.println("error400");
@@ -114,7 +132,7 @@ public class ApiController {
 
     class Exception403 extends ResponseStatusException {
         public Exception403() {
-            super(HttpStatus.FORBIDDEN);
+            super(HttpStatus.FORBIDDEN, "forbidden");
         }
     }
 
